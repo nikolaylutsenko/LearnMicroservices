@@ -27,9 +27,10 @@ namespace Play.Inventory.Service
         // This method gets called by the runtime. Use this method to add services to the container.
         public void ConfigureServices(IServiceCollection services)
         {
-
             services.AddMongo()
                 .AddMongoRepository<InventoryItem>("inventoryitems");
+
+            Random jitterer = new Random();
 
             services.AddHttpClient<CatalogClient>(client =>
             {
@@ -38,7 +39,8 @@ namespace Play.Inventory.Service
             .AddTransientHttpErrorPolicy(builder => builder.Or<TimeoutRejectedException>().WaitAndRetryAsync
             (
                 5,
-                retryAttempt => TimeSpan.FromSeconds(Math.Pow(2, retryAttempt)),
+                retryAttempt => TimeSpan.FromSeconds(Math.Pow(2, retryAttempt))
+                               + TimeSpan.FromMilliseconds(jitterer.Next(0, 1000)),
                 onRetry: (outcome, timespan, retryAttempt) =>
                 {
                     var serviceProvider = services.BuildServiceProvider();
