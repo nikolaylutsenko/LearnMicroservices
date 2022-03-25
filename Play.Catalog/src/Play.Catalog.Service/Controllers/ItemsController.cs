@@ -14,7 +14,6 @@ namespace Play.Catalog.Service.Controllers
     public class ItemsController : ControllerBase
     {
         private readonly IRepository<Item> _itemsRepository;
-        private static int _requestCounter;
 
         public ItemsController(IRepository<Item> itemsRepository)
         {
@@ -24,25 +23,9 @@ namespace Play.Catalog.Service.Controllers
         [HttpGet]
         public async Task<ActionResult<IEnumerable<ItemDto>>> GetAllAsync()
         {
-            _requestCounter++;
-            Console.WriteLine($"Requet {_requestCounter}: Starting...");
-
-            if (_requestCounter <= 2)
-            {
-                Console.WriteLine($"Request {_requestCounter}: Delaying...");
-                await Task.Delay(TimeSpan.FromSeconds(10));
-            }
-
-            if (_requestCounter <= 4)
-            {
-                Console.WriteLine($"Request {_requestCounter}: 500 (Internal Server Error)");
-                return StatusCode(500);
-            }
-
             var itemDtos = (await _itemsRepository.GetAllAsync())
                 .Select(itm => itm.AsDto());
 
-            Console.WriteLine($"Request {_requestCounter}: 200 (Ok)");       
             return Ok(itemDtos);
         }
 
