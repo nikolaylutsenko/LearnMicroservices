@@ -2,7 +2,9 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using MassTransit;
 using Microsoft.AspNetCore.Mvc;
+using Play.Catalog.Contracts;
 using Play.Catalog.Service.Dto;
 using Play.Catalog.Service.Entities;
 using Play.Common;
@@ -14,10 +16,12 @@ namespace Play.Catalog.Service.Controllers
     public class ItemsController : ControllerBase
     {
         private readonly IRepository<Item> _itemsRepository;
+        private readonly IPublishEndpoint _publishEndpoint;
 
-        public ItemsController(IRepository<Item> itemsRepository)
+        public ItemsController(IRepository<Item> itemsRepository, IPublishEndpoint publishEndpoint)
         {
             _itemsRepository = itemsRepository;
+            _publishEndpoint = publishEndpoint;
         }
 
         [HttpGet]
@@ -54,6 +58,9 @@ namespace Play.Catalog.Service.Controllers
 
             await _itemsRepository.DeleteAsync(item.Id);
 
+            // send message about deleting
+            await _publishEndpoint.Publish(new CatalogItemDeleted(id));
+
             return NoContent();
 
         }
@@ -70,6 +77,9 @@ namespace Play.Catalog.Service.Controllers
             };
 
             await _itemsRepository.AddAsync(item);
+
+            // send message about creation
+            await _publishEndpoint.Publish(new CatalogItemCreated(item.Id, item.Name, item.Description));
 
             return CreatedAtAction(nameof(GetByIdAsync), new { id = item.Id }, item); // stupid bug with routing I can't use Async method in case CreatedInAction
         }
@@ -89,6 +99,9 @@ namespace Play.Catalog.Service.Controllers
             existingItem.Price = updateItemDto.Price;
 
             await _itemsRepository.UpdateAsync(existingItem);
+
+            // send message about updating
+            await _publishEndpoint.Publish(new CatalogItemUpdated(existingItem.Id, existingItem.Name, existingItem.Description));
 
             return NoContent();
         }
